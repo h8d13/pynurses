@@ -3,9 +3,10 @@
 
 Run: python demo.py
 """
+import time
 from typing import Any
 
-from pynurses import * 
+from pynurses import *
 # consult __init__.py for module declaration
 # for simplicity we'll import all of them
 
@@ -53,6 +54,8 @@ def _preview(item: MenuItem) -> str | None:
 	if key == 'proceed':
 		v = STATE['proceed']
 		return f'Horizontal Yes/No menu (Orientation.HORIZONTAL).\n\nAnswer: {v!r}'
+	if key == 'loading':
+		return 'ProgressBar demo. Runs a fake 2s task with a block-fill bar.'
 	if key == 'settings':
 		return (
 			'Nested submenu demo. Live curses theme.\n\n'
@@ -139,6 +142,20 @@ def _set_hostname() -> None:
 		STATE['hostname'] = res.text()
 
 
+def _fake_load() -> None:
+	# centered, fixed width, numeric
+	with ProgressBar(total=40, width=60) as bar:
+		for _ in range(40):
+			time.sleep(0.03)
+			bar.step()
+
+	# bottom, full width, numeric
+	with ProgressBar(total=30, width='full', position='bottom') as bar:
+		for _ in range(30):
+			time.sleep(0.03)
+			bar.step()
+
+
 def _ask_proceed() -> None:
 	group = MenuItemGroup([MenuItem.yes(), MenuItem.no()])
 	frame = FrameProperties('Confirm', FrameStyle.MIN, FrameStyle.MAX)
@@ -216,6 +233,7 @@ def main() -> None:
 		MenuItem('Edit notes', value=_edit_notes, key='notes', preview_action=_preview),
 		MenuItem('Set hostname (EditMenu)', value=_set_hostname, key='hostname', preview_action=_preview),
 		MenuItem('Proceed? (horizontal)', value=_ask_proceed, key='proceed', preview_action=_preview),
+		MenuItem('Fake loading bar', value=_fake_load, key='loading', preview_action=_preview),
 		MenuItem.separator(),
 		MenuItem('Settings...', value=_open_settings, key='settings', preview_action=_preview),
 		MenuItem.separator(),

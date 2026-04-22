@@ -5,7 +5,32 @@ from .password import Password, PasswordStrength
 
 from .curses_menu import EditMenu
 from .result import ResultType
-from .types import Alignment
+from .types import STYLE, Alignment, ViewportEntry
+
+
+_STRENGTH_STYLE = {
+	PasswordStrength.WEAK: STYLE.ERROR,
+	PasswordStrength.MODERATE: STYLE.WARNING,
+	PasswordStrength.STRONG: STYLE.HELP,
+}
+
+
+def _confirm_header_entries(
+	header: str | None,
+	password: Password,
+	strength: PasswordStrength,
+) -> list[ViewportEntry]:
+	rows: list[tuple[str, STYLE]] = []
+	if header:
+		for line in header.rstrip('\n').split('\n'):
+			rows.append((line, STYLE.NORMAL))
+	rows.append((f'{tr("Password")}: {password.hidden()}', STYLE.NORMAL))
+	rows.append((
+		f'{tr("Password strength")}: {strength.value}',
+		_STRENGTH_STYLE[strength],
+	))
+	rows.append(('', STYLE.NORMAL))
+	return [ViewportEntry(text, i, 0, style) for i, (text, style) in enumerate(rows)]
 
 
 def get_password(
@@ -42,16 +67,9 @@ def get_password(
 		if skip_confirmation:
 			return password
 
-		strength_line = f'{tr("Password strength")}: {strength.value}'
-
-		if header is not None:
-			confirmation_header = f'{header}{tr("Password")}: {password.hidden()}\n{strength_line}\n'
-		else:
-			confirmation_header = f'{tr("Password")}: {password.hidden()}\n{strength_line}\n'
-
 		result = EditMenu(
 			tr('Confirm password'),
-			header=confirmation_header,
+			header_entries=_confirm_header_entries(header, password, strength),
 			alignment=Alignment.CENTER,
 			allow_skip=False,
 			hide_input=True,

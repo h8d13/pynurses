@@ -466,13 +466,16 @@ class EditMenu(AbstractCurses[str]):
 		alignment: Alignment = Alignment.CENTER,
 		default_text: str | None = None,
 		hide_input: bool = False,
+		header_entries: list[ViewportEntry] | None = None,
 	):
 		super().__init__()
 
 		self._max_height, self._max_width = Tui.t().max_yx
 
 		self._header_entries = []
-		if header:
+		if header_entries is not None:
+			self._header_entries = header_entries
+		elif header:
 			self._header_entries = self.get_header_entries(header)
 
 		self._validator = validator
@@ -1440,9 +1443,10 @@ class Tui:
 		for style, (fg, bg) in theme.items():
 			curses.init_pair(style.value, fg, bg)
 
-		# Use theme's background for help/error colors
+		# Use theme's background for help/error/warning colors
 		curses.init_pair(STYLE.HELP.value, curses.COLOR_GREEN, bg_color)
 		curses.init_pair(STYLE.ERROR.value, curses.COLOR_RED, bg_color)
+		curses.init_pair(STYLE.WARNING.value, curses.COLOR_YELLOW, bg_color)
 
 		# Set the screen background
 		self._screen.bkgd(' ', curses.color_pair(STYLE.NORMAL.value))

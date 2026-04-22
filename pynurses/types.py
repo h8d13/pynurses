@@ -12,6 +12,7 @@ class STYLE(Enum):
 	MENU_STYLE = 3
 	HELP = 4
 	ERROR = 5
+	WARNING = 6
 
 
 class MenuKeys(Enum):
