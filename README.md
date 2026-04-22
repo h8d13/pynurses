@@ -1,7 +1,7 @@
 # pynurses
 
 ```sh
-python -m pynurses.demo
+python demo.py
 ```
 
 ---

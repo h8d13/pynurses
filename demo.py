@@ -1,25 +1,11 @@
 #!/usr/bin/env python3
 """Consolidated demo: main menu on left, live preview on right.
 
-Run: python -m pynurses.demo
+Run: python demo.py
 """
 from typing import Any
 
-from . import (
-	Alignment,
-	EditMenu,
-	FrameProperties,
-	MenuItem,
-	MenuItemGroup,
-	PasswordStrength,
-	PreviewStyle,
-	ResultType,
-	SelectMenu,
-	Tui,
-	edit_content,
-	get_password,
-	prompt_dir,
-)
+from pynurses import *
 
 
 STATE: dict[str, Any] = {
