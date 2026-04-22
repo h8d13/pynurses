@@ -15,6 +15,8 @@ STATE: dict[str, Any] = {
 	'password': None,
 	'workdir': None,
 	'notes': '',
+	'hostname': None,
+	'proceed': None,
 	'mode': 'dark',
 	'accent': 'blue',
 }
@@ -45,6 +47,12 @@ def _preview(item: MenuItem) -> str | None:
 		head = '\n'.join(lines[:10])
 		more = f'\n... ({len(lines) - 10} more lines)' if len(lines) > 10 else ''
 		return f'Multi-line content editor.\n\n{head}{more}'
+	if key == 'hostname':
+		v = STATE['hostname']
+		return f'EditMenu with validator.\n\nHostname: {v or "(unset)"}'
+	if key == 'proceed':
+		v = STATE['proceed']
+		return f'Horizontal Yes/No menu (Orientation.HORIZONTAL).\n\nAnswer: {v!r}'
 	if key == 'settings':
 		return (
 			'Nested submenu demo. Live curses theme.\n\n'
@@ -107,9 +115,43 @@ def _set_workdir() -> None:
 
 
 def _edit_notes() -> None:
-	text = edit_content(preset=STATE['notes'], title='Notes')
+	# direct ContentEditor construction (edit_content is a one-liner wrapper around this)
+	text = ContentEditor(title='Notes', preset=STATE['notes']).edit()
 	if text is not None:
 		STATE['notes'] = text
+
+
+def _set_hostname() -> None:
+	def _valid(s: str | None) -> str | None:
+		if not s:
+			return 'hostname must not be empty'
+		if any(c.isspace() for c in s):
+			return 'no whitespace allowed'
+		return None
+
+	res: Result = EditMenu(
+		'Hostname',
+		validator=_valid,
+		allow_skip=True,
+		default_text=STATE['hostname'] or '',
+	).input()
+	if res.type_ == ResultType.Selection and res.text():
+		STATE['hostname'] = res.text()
+
+
+def _ask_proceed() -> None:
+	group = MenuItemGroup([MenuItem.yes(), MenuItem.no()])
+	frame = FrameProperties('Confirm', FrameStyle.MIN, FrameStyle.MAX)
+	res = SelectMenu(
+		group,
+		header='Proceed?',
+		orientation=Orientation.HORIZONTAL,
+		frame=frame,
+		alignment=Alignment.CENTER,
+		allow_skip=True,
+	).run()
+	if res.has_item():
+		STATE['proceed'] = res.get_value()
 
 
 def _apply_theme() -> None:
@@ -142,16 +184,18 @@ def _pick_accent() -> None:
 		STATE['accent'] = res.get_value()
 		_apply_theme()
 
+_SETTINGS_GROUP = MenuItemGroup([
+	MenuItem('Mode', value=_pick_mode, key='mode'),
+	MenuItem('Accent color', value=_pick_accent, key='accent'),
+	MenuItem.separator(),
+	MenuItem('Back', value=None, key='back'),
+])
+
+
 def _open_settings() -> None:
 	while True:
-		items = [
-			MenuItem('Mode', value=_pick_mode, key='mode'),
-			MenuItem('Accent color', value=_pick_accent, key='accent'),
-			MenuItem.separator(),
-			MenuItem('Back', value=None, key='back'),
-		]
 		res = SelectMenu(
-			MenuItemGroup(items),
+			_SETTINGS_GROUP,
 			header='Settings (submenu)',
 			allow_skip=True,
 		).run()
@@ -163,21 +207,24 @@ def _open_settings() -> None:
 		chosen()
 
 def main() -> None:
+	items = [
+		MenuItem.separator(),
+		MenuItem('Pick fruit (single-select)', value=_pick_fruit, key='fruit', preview_action=_preview),
+		MenuItem('Pick toppings (multi-select)', value=_pick_toppings, key='toppings', preview_action=_preview),
+		MenuItem('Set password', value=_set_password, key='password', preview_action=_preview),
+		MenuItem('Set working dir', value=_set_workdir, key='workdir', preview_action=_preview),
+		MenuItem('Edit notes', value=_edit_notes, key='notes', preview_action=_preview),
+		MenuItem('Set hostname (EditMenu)', value=_set_hostname, key='hostname', preview_action=_preview),
+		MenuItem('Proceed? (horizontal)', value=_ask_proceed, key='proceed', preview_action=_preview),
+		MenuItem.separator(),
+		MenuItem('Settings...', value=_open_settings, key='settings', preview_action=_preview),
+		MenuItem.separator(),
+		MenuItem('Quit', value=None, key='quit', preview_action=_preview),
+	]
+	group = MenuItemGroup(items)
+
 	with Tui():
 		while True:
-			items = [
-				MenuItem.separator(),
-				MenuItem('Pick fruit (single-select)', value=_pick_fruit, key='fruit', preview_action=_preview),
-				MenuItem('Pick toppings (multi-select)', value=_pick_toppings, key='toppings', preview_action=_preview),
-				MenuItem('Set password', value=_set_password, key='password', preview_action=_preview),
-				MenuItem('Set working dir', value=_set_workdir, key='workdir', preview_action=_preview),
-				MenuItem('Edit notes', value=_edit_notes, key='notes', preview_action=_preview),
-				MenuItem.separator(),
-				MenuItem('Settings...', value=_open_settings, key='settings', preview_action=_preview),
-				MenuItem.separator(),
-				MenuItem('Quit', value=None, key='quit', preview_action=_preview),
-			]
-			group = MenuItemGroup(items)
 			res = SelectMenu(
 				group,
 				preview_style=PreviewStyle.RIGHT,
