@@ -5,8 +5,9 @@ Run: python demo.py
 """
 from typing import Any
 
-from pynurses import *
-
+from pynurses import * 
+# consult __init__.py for module declaration
+# for simplicity we'll import all of them
 
 STATE: dict[str, Any] = {
 	'fruit': None,
@@ -17,7 +18,6 @@ STATE: dict[str, Any] = {
 	'mode': 'dark',
 	'accent': 'blue',
 }
-
 
 def _preview(item: MenuItem) -> str | None:
 	key = item.key
@@ -55,7 +55,6 @@ def _preview(item: MenuItem) -> str | None:
 		return 'Exit the demo.\n\nCtrl+C on any menu clears its selection.'
 	return None
 
-
 def _pick_fruit() -> None:
 	group = MenuItemGroup([
 		MenuItem('Apples', value='apples'),
@@ -73,7 +72,6 @@ def _pick_fruit() -> None:
 		STATE['fruit'] = None
 	elif res.has_item():
 		STATE['fruit'] = res.get_value()
-
 
 def _pick_toppings() -> None:
 	group = MenuItemGroup([
@@ -130,7 +128,6 @@ def _pick_mode() -> None:
 		STATE['mode'] = res.get_value()
 		_apply_theme()
 
-
 def _pick_accent() -> None:
 	group = MenuItemGroup([
 		MenuItem('Blue', value='blue'),
@@ -144,7 +141,6 @@ def _pick_accent() -> None:
 	if res.has_item():
 		STATE['accent'] = res.get_value()
 		_apply_theme()
-
 
 def _open_settings() -> None:
 	while True:
@@ -165,7 +161,6 @@ def _open_settings() -> None:
 		if chosen is None:
 			return
 		chosen()
-
 
 def main() -> None:
 	with Tui():
