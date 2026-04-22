@@ -155,6 +155,16 @@ def _fake_load() -> None:
 			time.sleep(0.03)
 			bar.step()
 
+	# top, labeled steps
+	with ProgressBar(
+		steps=['Resolving deps', 'Downloading', 'Extracting', 'Linking', 'Done'],
+		width=60,
+		position='top',
+	) as bar:
+		for _ in range(5):
+			time.sleep(0.3)
+			bar.next()
+
 
 def _ask_proceed() -> None:
 	group = MenuItemGroup([MenuItem.yes(), MenuItem.no()])

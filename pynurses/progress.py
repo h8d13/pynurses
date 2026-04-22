@@ -24,17 +24,21 @@ class ProgressBar:
 		total: int = 100,
 		width: int | Literal['full'] = 60,
 		position: Position = 'center',
+		steps: list[str] | None = None,
 	):
+		if steps:
+			total = len(steps)
 		self._total = max(1, total)
 		self._width_req: int | Literal['full'] = width
 		self._position: Position = position
+		self._steps = steps
 		self._current = 0
 		self._label: str | None = None
 		self._win: curses.window | None = None
 
 	def __enter__(self) -> Self:
 		max_y, max_x = Tui.t().max_yx
-		h = 3
+		h = 4 if self._steps else 3
 		w = max_x if self._width_req == 'full' else min(self._width_req, max_x)
 		w = max(20, w)
 
@@ -66,10 +70,16 @@ class ProgressBar:
 		self._current = max(0, min(current, self._total))
 		if label is not None:
 			self._label = label
+		elif self._steps and 0 < self._current <= len(self._steps):
+			self._label = self._steps[self._current - 1]
 		self._draw()
 
 	def step(self, n: int = 1, label: str | None = None) -> None:
 		self.update(self._current + n, label=label)
+
+	def next(self, label: str | None = None) -> None:
+		"""Advance one step; if steps= was set, auto-picks the next label."""
+		self.step(1, label=label)
 
 	def _draw(self) -> None:
 		win = self._win
@@ -78,25 +88,30 @@ class ProgressBar:
 		win.erase()
 		h, w = win.getmaxyx()
 
-		# border
-		win.addstr(0, 0, Chars.Upper_left + Chars.Horizontal * (w - 2) + Chars.Upper_right)
-		win.addstr(1, 0, Chars.Vertical + ' ' * (w - 2) + Chars.Vertical)
-		# last-row write: addstr on bottom-right cell raises; use insstr
-		bottom = Chars.Lower_left + Chars.Horizontal * (w - 2) + Chars.Lower_right
-		win.insstr(2, 0, bottom)
-
 		inner = w - 4
 		pct = self._current / self._total
 
-		# title slot: custom label if given, else live numbers
-		numeric = f'{int(pct * 100):3d}% {self._current}/{self._total}'
-		title = f' {self._label} ({numeric}) ' if self._label else f' {numeric} '
-		win.addstr(0, 2, title[: w - 4])
+		# border
+		win.addstr(0, 0, Chars.Upper_left + Chars.Horizontal * (w - 2) + Chars.Upper_right)
+		win.addstr(1, 0, Chars.Vertical + ' ' * (w - 2) + Chars.Vertical)
+		# title slot always shows live numbers
+		numeric = f' {int(pct * 100):3d}% {self._current}/{self._total} '
+		win.addstr(0, 2, numeric[: w - 4])
 
 		# fill: accent-colored blocks
 		filled = int(inner * pct)
 		accent = curses.color_pair(STYLE.CURSOR_STYLE.value)
 		win.addstr(1, 2, Chars.Block * filled, accent)
 		win.addstr(1, 2 + filled, ' ' * (inner - filled))
+
+		# optional label row beneath the bar
+		if h == 4:
+			win.addstr(2, 0, Chars.Vertical + ' ' * (w - 2) + Chars.Vertical)
+			if self._label:
+				win.addstr(2, 2, f'{self._label}...'[: inner])
+
+		# last-row write: addstr on bottom-right cell raises; use insstr
+		bottom = Chars.Lower_left + Chars.Horizontal * (w - 2) + Chars.Lower_right
+		win.insstr(h - 1, 0, bottom)
 
 		win.refresh()
